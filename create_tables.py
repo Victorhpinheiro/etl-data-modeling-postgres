@@ -23,6 +23,8 @@ def create_database():
     # connect to sparkify database
     conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=student password=student")
     cur = conn.cursor()
+
+    conn.set_session(autocommit=True)
     
     return cur, conn
 
@@ -62,6 +64,11 @@ def main():
     
     drop_tables(cur, conn)
     create_tables(cur, conn)
+
+    row = cur.execute("SELECT * FROM pg_catalog.pg_tables;")
+    print(row)
+    
+ 
 
     conn.close()
 
