@@ -6,38 +6,53 @@ from sql_queries import *
 
 
 def process_song_file(cur, filepath):
+    """
+    Add to connection the processed information from song files in json format when given a cursor from a db and a path.
+    Considers filepath a valid computer path.
+    Considers cur a valid active cursor for a db.
+    returns nothing.
+    """
+
     # open song file
-    df = 
+    df = pd.read_json(filepath, typ='series')
 
     # insert song record
-    song_data = 
+    song_data = (df['song_id'], df['title'], df['artist_id'], df['year'], df['duration'])
     cur.execute(song_table_insert, song_data)
     
     # insert artist record
-    artist_data = 
+    artist_data = (df['artist_id'], df['artist_name'], df['artist_location'], df['artist_latitude'], df['artist_longitude'])
     cur.execute(artist_table_insert, artist_data)
 
 
 def process_log_file(cur, filepath):
+    """
+    Add to connection the processed information from log files in json format when given a cursor from a db and a path.
+    Considers filepath a valid computer path.
+    Considers cur a valid active cursor for a db.
+    returns nothing.
+    """
+
     # open log file
-    df = 
+    df = pd.read_json(filepath, lines=True)
 
     # filter by NextSong action
-    df = 
+    df = df.query('page == "NextSong"')
 
     # convert timestamp column to datetime
-    t = 
-    
+    t = pd.to_datetime(df['ts'], unit='ms')
+    df['ts'] = t
+
     # insert time data records
-    time_data = 
-    column_labels = 
-    time_df = 
+    time_data = list((t, t.dt.hour, t.dt.day, t.dt.isocalendar().week, t.dt.month, t.dt.year, t.dt.weekday))
+    column_labels = list(("start_time", "hour", "day", "week", "month", "year", "weekday"))
+    time_df = pd.DataFrame(dict(zip(column_labels, time_data)))
 
     for i, row in time_df.iterrows():
         cur.execute(time_table_insert, list(row))
 
     # load user table
-    user_df = 
+    user_df = df[['userId', 'firstName', 'lastName', 'gender', 'level']].copy()
 
     # insert user records
     for i, row in user_df.iterrows():
@@ -56,11 +71,20 @@ def process_log_file(cur, filepath):
             songid, artistid = None, None
 
         # insert songplay record
-        songplay_data = 
+        songplay_data = (row.ts, row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    It calls different process fuctions into a file given a function 
+    to process, the path, cursor and connection from a db.
+    Considers cur a valid active cursor for a db.
+    Considers conn a valid active connection for a db.
+    Considers filepath a valid path for a json file.
+    Considers func a valid pre defined function - process_log_file or process_song_file.
+    returns nothing.
+    """
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
